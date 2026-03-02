@@ -2,12 +2,9 @@
 from __future__ import annotations
 
 import logging
-import uuid
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
 from app.config import settings
 from app.schemas.models import ItineraryRequest, RefineRequest, ItineraryResponse
