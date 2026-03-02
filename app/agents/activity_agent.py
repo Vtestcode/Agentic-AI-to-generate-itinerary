@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 from app.config import settings
@@ -112,11 +113,8 @@ async def _generate_activities(
 
         response = await llm.ainvoke([SystemMessage(content=system), HumanMessage(content=human)])
         raw = response.content.strip()
-        # Strip markdown code fences if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
+        # Strip markdown code fences if present (e.g. ```json ... ```)
+        raw = re.sub(r"^```(?:json)?\n?|```$", "", raw, flags=re.MULTILINE).strip()
         activities: list[dict] = json.loads(raw)
         return activities
     except Exception as exc:

@@ -36,7 +36,7 @@ async def _get_with_retry(client: httpx.AsyncClient, url: str, params: dict, ret
         except (httpx.HTTPError, httpx.TimeoutException) as exc:
             last_exc = exc
             if attempt < retries - 1:
-                await asyncio.sleep(2 ** attempt)
+                await asyncio.sleep(min(2 ** attempt, 10))
     raise last_exc
 
 

@@ -1,6 +1,6 @@
 # ✈️ Agentic AI Travel Itinerary Generator
 
-A production-ready agentic AI application that generates personalised travel itineraries using **LangGraph**, **LangChain**, **OpenAI GPT-4o-mini**, and **FastAPI**.
+A production-ready agentic AI application that generates personalized travel itineraries using **LangGraph**, **LangChain**, **OpenAI GPT-4o-mini**, and **FastAPI**.
 
 ## Features
 
