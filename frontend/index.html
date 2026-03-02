@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Travel Itinerary Planner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #3730a3;
+      --secondary: #06b6d4;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      padding: 2rem 1rem;
+      text-align: center;
+    }
+
+    header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    header p { opacity: 0.85; font-size: 1.05rem; }
+
+    main { max-width: 900px; margin: 0 auto; padding: 2rem 1rem; }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+    }
+
+    .card h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 1.25rem; color: var(--primary); }
+
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; font-weight: 500; margin-bottom: 0.4rem; font-size: 0.9rem; }
+
+    .input-row { display: flex; gap: 0.75rem; }
+    .input-row input { flex: 1; }
+
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 0.65rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: white;
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      padding: 0.7rem 1.75rem;
+      font-size: 1rem;
+      width: 100%;
+    }
+
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: var(--shadow); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .btn-icon {
+      background: var(--bg);
+      color: var(--primary);
+      border: 1.5px solid var(--border);
+      padding: 0.65rem 0.9rem;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .btn-icon:hover { background: white; border-color: var(--primary); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+      padding: 0.6rem 1.25rem;
+      font-size: 0.9rem;
+    }
+
+    .btn-secondary:hover { background: var(--primary); color: white; }
+
+    /* Spinner */
+    .spinner-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(248,250,252,0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .spinner-overlay.active { display: flex; }
+
+    .spinner {
+      width: 52px; height: 52px;
+      border: 5px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .spinner-text { color: var(--primary); font-weight: 600; }
+
+    /* Error banner */
+    .error-banner {
+      display: none;
+      background: #fef2f2;
+      border: 1.5px solid #fca5a5;
+      color: #dc2626;
+      border-radius: 8px;
+      padding: 0.9rem 1.2rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.9rem;
+    }
+
+    .error-banner.visible { display: block; }
+
+    /* Result section */
+    #result-section { display: none; }
+    #result-section.visible { display: block; }
+
+    .result-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .result-title h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .result-title p { color: var(--text-muted); font-size: 0.95rem; }
+
+    .weather-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+      color: #0369a1;
+      padding: 0.6rem 1.1rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    /* Period sections */
+    .periods { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; }
+
+    .period-card { background: var(--bg); border-radius: var(--radius); padding: 1.25rem; border: 1.5px solid var(--border); }
+
+    .period-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .period-morning .period-title { color: #d97706; }
+    .period-afternoon .period-title { color: #0891b2; }
+    .period-evening .period-title { color: #6d28d9; }
+
+    .activity-item {
+      background: white;
+      border-radius: 8px;
+      padding: 0.9rem;
+      margin-bottom: 0.75rem;
+      border-left: 3px solid var(--border);
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.05);
+    }
+
+    .activity-item:last-child { margin-bottom: 0; }
+    .period-morning .activity-item { border-left-color: #f59e0b; }
+    .period-afternoon .activity-item { border-left-color: #06b6d4; }
+    .period-evening .activity-item { border-left-color: #7c3aed; }
+
+    .activity-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.3rem; }
+    .activity-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; line-height: 1.5; }
+    .activity-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    .tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+    }
+
+    .tag-time { background: #e0f2fe; color: #0369a1; }
+    .tag-indoor { background: #f0fdf4; color: #15803d; }
+    .tag-outdoor { background: #fef9c3; color: #854d0e; }
+    .tag-duration { background: #f5f3ff; color: #5b21b6; }
+
+    /* Tips */
+    .tips-list { list-style: none; }
+    .tips-list li {
+      padding: 0.65rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+      display: flex;
+      gap: 0.6rem;
+      align-items: flex-start;
+    }
+
+    .tips-list li:last-child { border-bottom: none; }
+    .tips-list li::before { content: "💡"; flex-shrink: 0; }
+
+    /* Refine section */
+    #refine-section { display: none; }
+    #refine-section.visible { display: block; }
+    .refine-row { display: flex; gap: 0.75rem; align-items: flex-end; }
+    .refine-row .form-group { flex: 1; margin-bottom: 0; }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.5rem; }
+      .periods { grid-template-columns: 1fr; }
+      .result-header { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>✈️ AI Travel Itinerary Planner</h1>
+  <p>Powered by LangGraph &amp; OpenAI – personalised day plans in seconds</p>
+</header>
+
+<div class="spinner-overlay" id="spinner">
+  <div class="spinner"></div>
+  <div class="spinner-text" id="spinner-text">Generating your itinerary…</div>
+</div>
+
+<main>
+  <!-- Search form -->
+  <div class="card">
+    <h2>🗺️ Where are you heading?</h2>
+    <div class="error-banner" id="error-banner"></div>
+
+    <div class="form-group">
+      <label for="location-input">Destination</label>
+      <div class="input-row">
+        <input type="text" id="location-input" placeholder="e.g. Paris, Tokyo, New York…" />
+        <button class="btn-icon" id="geo-btn" title="Detect my location">📍</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="prefs-input">Preferences <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+      <textarea id="prefs-input" placeholder="e.g. I love museums and street food. Avoid crowded tourist traps."></textarea>
+    </div>
+
+    <button class="btn-primary" id="generate-btn">✨ Generate Itinerary</button>
+  </div>
+
+  <!-- Result section -->
+  <section id="result-section">
+    <div class="card">
+      <div class="result-header">
+        <div class="result-title">
+          <h2 id="result-location"></h2>
+          <p id="result-subtitle"></p>
+        </div>
+        <div class="weather-badge" id="weather-badge"></div>
+      </div>
+
+      <div class="periods">
+        <div class="period-card period-morning">
+          <div class="period-title">🌅 Morning</div>
+          <div id="morning-activities"></div>
+        </div>
+        <div class="period-card period-afternoon">
+          <div class="period-title">☀️ Afternoon</div>
+          <div id="afternoon-activities"></div>
+        </div>
+        <div class="period-card period-evening">
+          <div class="period-title">🌙 Evening</div>
+          <div id="evening-activities"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="card" id="tips-card" style="display:none">
+      <h2>🛡️ Travel Tips &amp; Safety</h2>
+      <ul class="tips-list" id="tips-list"></ul>
+    </div>
+
+    <!-- Refine -->
+    <div class="card" id="refine-section">
+      <h2>💬 Refine Your Itinerary</h2>
+      <div class="refine-row">
+        <div class="form-group">
+          <input type="text" id="refine-input" placeholder="e.g. Add more outdoor activities, or swap lunch for a cooking class…" />
+        </div>
+        <button class="btn-secondary" id="refine-btn">Update</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const API_BASE = window.location.origin;
+  let currentItinerary = null;
+  let sessionId = null;
+
+  const locationInput = document.getElementById('location-input');
+  const prefsInput = document.getElementById('prefs-input');
+  const generateBtn = document.getElementById('generate-btn');
+  const geoBtn = document.getElementById('geo-btn');
+  const spinner = document.getElementById('spinner');
+  const spinnerText = document.getElementById('spinner-text');
+  const errorBanner = document.getElementById('error-banner');
+  const resultSection = document.getElementById('result-section');
+  const refineSection = document.getElementById('refine-section');
+  const refineInput = document.getElementById('refine-input');
+  const refineBtn = document.getElementById('refine-btn');
+
+  function showSpinner(text = 'Generating your itinerary…') {
+    spinnerText.textContent = text;
+    spinner.classList.add('active');
+  }
+
+  function hideSpinner() {
+    spinner.classList.remove('active');
+  }
+
+  function showError(msg) {
+    errorBanner.textContent = msg;
+    errorBanner.classList.add('visible');
+  }
+
+  function hideError() {
+    errorBanner.classList.remove('visible');
+  }
+
+  function renderActivity(activity) {
+    const typeClass = activity.type === 'indoor' ? 'tag-indoor' : 'tag-outdoor';
+    return `
+      <div class="activity-item">
+        <div class="activity-name">${escHtml(activity.name)}</div>
+        <div class="activity-desc">${escHtml(activity.description)}</div>
+        <div class="activity-meta">
+          <span class="tag tag-time">🕐 ${escHtml(activity.time_slot)}</span>
+          <span class="tag ${typeClass}">${activity.type === 'indoor' ? '🏛️ Indoor' : '🌿 Outdoor'}</span>
+          <span class="tag tag-duration">⏱ ${escHtml(activity.estimated_duration)}</span>
+        </div>
+      </div>`;
+  }
+
+  function renderActivities(containerId, activities) {
+    const container = document.getElementById(containerId);
+    if (!activities || activities.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem 0">No activities planned for this period.</p>';
+      return;
+    }
+    container.innerHTML = activities.map(renderActivity).join('');
+  }
+
+  function escHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = String(str ?? '');
+    return d.innerHTML;
+  }
+
+  function renderResult(data) {
+    document.getElementById('result-location').textContent = data.location;
+    document.getElementById('result-subtitle').textContent =
+      `Temperature: ${data.temperature}°C · ${data.weather_summary}`;
+    document.getElementById('weather-badge').textContent =
+      `🌡 ${data.temperature}°C · ${data.weather_summary}`;
+
+    renderActivities('morning-activities', data.recommendations?.morning);
+    renderActivities('afternoon-activities', data.recommendations?.afternoon);
+    renderActivities('evening-activities', data.recommendations?.evening);
+
+    const tipsList = document.getElementById('tips-list');
+    const tipsCard = document.getElementById('tips-card');
+    if (data.tips && data.tips.length > 0) {
+      tipsList.innerHTML = data.tips.map(t => `<li>${escHtml(t)}</li>`).join('');
+      tipsCard.style.display = 'block';
+    } else {
+      tipsCard.style.display = 'none';
+    }
+
+    resultSection.classList.add('visible');
+    refineSection.classList.add('visible');
+    resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function generateItinerary() {
+    const location = locationInput.value.trim();
+    if (!location) { showError('Please enter a destination.'); return; }
+    hideError();
+    showSpinner('Generating your itinerary…');
+    generateBtn.disabled = true;
+
+    try {
+      const res = await fetch(`${API_BASE}/itinerary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location, preferences: prefsInput.value.trim() || null }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      currentItinerary = data;
+      sessionId = 'sess_' + Math.random().toString(36).slice(2);
+      renderResult(data);
+    } catch (e) {
+      showError(`Failed to generate itinerary: ${e.message}`);
+    } finally {
+      hideSpinner();
+      generateBtn.disabled = false;
+    }
+  }
+
+  async function refineItinerary() {
+    const message = refineInput.value.trim();
+    if (!message) return;
+    if (!currentItinerary) { showError('Generate an itinerary first.'); return; }
+    hideError();
+    showSpinner('Refining your itinerary…');
+    refineBtn.disabled = true;
+
+    try {
+      const res = await fetch(`${API_BASE}/itinerary/refine`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          message,
+          previous_itinerary: currentItinerary,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      currentItinerary = data;
+      renderResult(data);
+      refineInput.value = '';
+    } catch (e) {
+      showError(`Failed to refine itinerary: ${e.message}`);
+    } finally {
+      hideSpinner();
+      refineBtn.disabled = false;
+    }
+  }
+
+  // Geolocation
+  geoBtn.addEventListener('click', () => {
+    if (!navigator.geolocation) { showError('Geolocation is not supported by your browser.'); return; }
+    geoBtn.textContent = '⏳';
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await res.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || '';
+          const country = data.address?.country || '';
+          locationInput.value = city ? (country ? `${city}, ${country}` : city) : `${latitude},${longitude}`;
+        } catch {
+          locationInput.value = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+        } finally {
+          geoBtn.textContent = '📍';
+        }
+      },
+      (err) => {
+        geoBtn.textContent = '📍';
+        showError('Could not detect location: ' + err.message);
+      }
+    );
+  });
+
+  generateBtn.addEventListener('click', generateItinerary);
+  locationInput.addEventListener('keydown', e => { if (e.key === 'Enter') generateItinerary(); });
+  refineBtn.addEventListener('click', refineItinerary);
+  refineInput.addEventListener('keydown', e => { if (e.key === 'Enter') refineItinerary(); });
+</script>
+</body>
+</html>
